@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultDriverName     = "postgres"
+	defaultDriverName     = "pgx"
 	defaultConnectTimeout = 5 * time.Second
 	defaultMaxIdleConns   = 5
 	defaultMaxOpenConns   = 20
@@ -39,6 +39,7 @@ func FromEnv() (Config, error) {
 		ConnMaxIdleTime: defaultConnMaxIdle,
 		ConnMaxLifetime: defaultConnMaxLife,
 	}
+	cfg.DriverName = normalizeDriverName(cfg.DriverName)
 
 	if v := strings.TrimSpace(os.Getenv("DB_CONNECT_TIMEOUT_SECONDS")); v != "" {
 		n, err := strconv.Atoi(v)
@@ -92,4 +93,18 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func normalizeDriverName(name string) string {
+	n := strings.ToLower(strings.TrimSpace(name))
+	switch n {
+	case "", "pgx":
+		return defaultDriverName
+	case "postgres", "postgresql":
+		// Compatibility alias: DATABASE_URL often uses "postgres" nomenclature,
+		// while the registered database/sql driver in this project is pgx.
+		return "pgx"
+	default:
+		return n
+	}
 }

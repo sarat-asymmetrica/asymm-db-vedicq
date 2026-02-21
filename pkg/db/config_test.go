@@ -24,11 +24,23 @@ func TestFromEnvLoadsValidDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.DriverName != "postgres" {
-		t.Fatalf("expected default postgres driver, got %q", cfg.DriverName)
+	if cfg.DriverName != "pgx" {
+		t.Fatalf("expected default pgx driver, got %q", cfg.DriverName)
 	}
 	if cfg.DatabaseURL == "" {
 		t.Fatalf("database URL should not be empty")
+	}
+}
+
+func TestFromEnvNormalizesPostgresAlias(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://user:pass@localhost:5432/testdb")
+	t.Setenv("DB_DRIVER", "postgres")
+	cfg, err := FromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.DriverName != "pgx" {
+		t.Fatalf("expected postgres alias normalized to pgx, got %q", cfg.DriverName)
 	}
 }
 
