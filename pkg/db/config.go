@@ -16,29 +16,32 @@ const (
 	defaultMaxOpenConns   = 20
 	defaultConnMaxIdle    = 5 * time.Minute
 	defaultConnMaxLife    = 30 * time.Minute
+	defaultStmtTimeoutMS  = 15000
 )
 
 // Config defines database connection settings.
 type Config struct {
-	DriverName      string
-	DatabaseURL     string
-	ConnectTimeout  time.Duration
-	MaxIdleConns    int
-	MaxOpenConns    int
-	ConnMaxIdleTime time.Duration
-	ConnMaxLifetime time.Duration
+	DriverName         string
+	DatabaseURL        string
+	ConnectTimeout     time.Duration
+	MaxIdleConns       int
+	MaxOpenConns       int
+	ConnMaxIdleTime    time.Duration
+	ConnMaxLifetime    time.Duration
+	StatementTimeoutMS int
 }
 
 // FromEnv loads DB config from environment variables.
 func FromEnv() (Config, error) {
 	cfg := Config{
-		DriverName:      firstNonEmpty(os.Getenv("DB_DRIVER"), defaultDriverName),
-		DatabaseURL:     strings.TrimSpace(os.Getenv("DATABASE_URL")),
-		ConnectTimeout:  defaultConnectTimeout,
-		MaxIdleConns:    defaultMaxIdleConns,
-		MaxOpenConns:    defaultMaxOpenConns,
-		ConnMaxIdleTime: defaultConnMaxIdle,
-		ConnMaxLifetime: defaultConnMaxLife,
+		DriverName:         firstNonEmpty(os.Getenv("DB_DRIVER"), defaultDriverName),
+		DatabaseURL:        strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		ConnectTimeout:     defaultConnectTimeout,
+		MaxIdleConns:       defaultMaxIdleConns,
+		MaxOpenConns:       defaultMaxOpenConns,
+		ConnMaxIdleTime:    defaultConnMaxIdle,
+		ConnMaxLifetime:    defaultConnMaxLife,
+		StatementTimeoutMS: defaultStmtTimeoutMS,
 	}
 	cfg.DriverName = normalizeDriverName(cfg.DriverName)
 
@@ -63,6 +66,18 @@ func FromEnv() (Config, error) {
 		}
 		cfg.MaxOpenConns = n
 	}
+	if v := strings.TrimSpace(os.Getenv("DB_STATEMENT_TIMEOUT_MS")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return Config{}, fmt.Errorf("db: invalid DB_STATEMENT_TIMEOUT_MS")
+		}
+		cfg.StatementTimeoutMS = n
+	}
+	urlWithRuntimeParams, err := withDefaultRuntimeParams(cfg.DatabaseURL, cfg.StatementTimeoutMS)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.DatabaseURL = urlWithRuntimeParams
 
 	return cfg, cfg.Validate()
 }
@@ -91,7 +106,23 @@ func (c Config) Validate() error {
 	if c.MaxIdleConns < 0 {
 		return fmt.Errorf("db: max idle conns must be >= 0")
 	}
+	if c.StatementTimeoutMS <= 0 {
+		return fmt.Errorf("db: statement timeout must be > 0")
+	}
 	return nil
+}
+
+func withDefaultRuntimeParams(databaseURL string, statementTimeoutMS int) (string, error) {
+	u, err := url.Parse(databaseURL)
+	if err != nil {
+		return "", fmt.Errorf("db: database url is invalid: %w", err)
+	}
+	q := u.Query()
+	if strings.TrimSpace(q.Get("statement_timeout")) == "" {
+		q.Set("statement_timeout", strconv.Itoa(statementTimeoutMS))
+	}
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
 
 func firstNonEmpty(values ...string) string {

@@ -30,6 +30,13 @@ go run ./cmd/platform_runtime selfcheck
 go run ./cmd/platform_runtime serve --host 0.0.0.0 --port 8080
 ```
 
+Runtime API endpoints:
+- `GET /livez`
+- `GET /healthz`
+- `GET /readyz`
+- `POST /v1/decisions` (requires `X-Request-ID`, `Idempotency-Key`)
+- `POST /v1/telemetry/events` (requires `X-Request-ID`, `Idempotency-Key`)
+
 ## Docker
 
 Build:
@@ -55,6 +62,30 @@ docker run --rm -e DATABASE_URL="$DATABASE_URL" vedic-platform-experiments:local
 3. First run migration command override (`dbctl migrate up --dir /app/db/migrations`).
 4. Optionally run one-shot selfcheck command override (`platform_runtime selfcheck`).
 5. Keep default service command as long-running runtime (`platform_runtime serve`).
+
+Recommended probe settings for service mode:
+- Initial delay: `10s`
+- Period: `10s`
+- Timeout: `3s`
+- Failure threshold: `3`
+
+## Runtime Posture Defaults
+
+Supported DB tuning env vars:
+- `DB_MAX_OPEN_CONNS` (default `20`)
+- `DB_MAX_IDLE_CONNS` (default `5`)
+- `DB_CONNECT_TIMEOUT_SECONDS` (default `5`)
+- `DB_STATEMENT_TIMEOUT_MS` (default `15000`)
+
+Least-privilege role bootstrap:
+- `db/bootstrap/runtime_roles.sql`
+
+## Cutover Matrix
+
+Run live cutover evidence pack:
+```bash
+pwsh ./scripts/run_live_cutover_matrix.ps1
+```
 
 ## Next Step
 

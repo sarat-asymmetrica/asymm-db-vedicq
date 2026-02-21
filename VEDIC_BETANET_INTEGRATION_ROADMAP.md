@@ -264,23 +264,24 @@ Recommended execution cadence:
 Status:
 - `platform_runtime selfcheck` is successful as a one-shot command.
 - `platform_runtime serve` is now the long-running default container command.
+- Runtime probes now include `/livez`, `/healthz`, and `/readyz`.
+- Runtime API v1 scaffold is live with idempotent write paths:
+  - `POST /v1/decisions`
+  - `POST /v1/telemetry/events`
 
 Next milestones:
 1. Milestone R1: Service baseline stabilization.
-   - Add `/livez`, `/readyz`, and structured startup logs with config echo (non-secret).
-   - Add health probe settings to deployment docs (initial delay, timeout, period).
+   - Completed: `/livez`, `/readyz`, structured startup logs, and probe settings documented.
 2. Milestone R2: Runtime API v1 scaffold.
-   - Add HTTP endpoints for decision write path and telemetry ingest write path.
-   - Enforce request IDs and idempotency keys for mutating calls.
+   - Completed: decision + telemetry write endpoints with required request-id and idempotency headers.
 3. Milestone R3: Operator jobs split.
-   - Keep `dbctl migrate up` and `platform_runtime selfcheck` as one-shot job commands.
-   - Keep `platform_runtime serve` as service command only.
+   - Completed: runbooks now define one-shot jobs vs long-running service command boundaries.
 4. Milestone R4: Postgres production posture.
-   - Add least-privilege DB roles (`migrator`, `runtime_writer`, `runtime_reader`).
-   - Add connection pool limits and statement timeout defaults.
+   - In progress: statement timeout defaults and pool env surfaced.
+   - Completed: least-privilege role bootstrap script in `db/bootstrap/runtime_roles.sql`.
 5. Milestone R5: Cutover readiness.
-   - Run integration matrix against live Postgres.
-   - Capture rollback drill and data parity evidence before broader traffic.
+   - In progress: live matrix automation script + cutover checklist added.
+   - Pending: execute live matrix in hosted environment and attach evidence logs.
 
 ## 11. Definition of Done
 

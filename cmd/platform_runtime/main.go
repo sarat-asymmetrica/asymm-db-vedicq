@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -78,6 +79,8 @@ func serveCmd(args []string) {
 	nonceScope := fs.String("nonce-scope", "default", "nonce scope")
 	nonceWindow := fs.Uint64("nonce-window", 1000, "nonce reservation window")
 	healthTimeout := fs.Duration("health-timeout", 5*time.Second, "database health check timeout")
+	writeTimeout := fs.Duration("write-timeout", 8*time.Second, "api write timeout")
+	idempotencyTTL := fs.Duration("idempotency-ttl", 24*time.Hour, "idempotency key retention window")
 	shutdownTimeout := fs.Duration("shutdown-timeout", 10*time.Second, "graceful shutdown timeout")
 	_ = fs.Parse(args)
 
@@ -104,27 +107,15 @@ func serveCmd(args []string) {
 		fatalf("startup health check: %v", err)
 	}
 
+	logServeStartup(dbCfg, *host, *port, *healthTimeout, *writeTimeout, *idempotencyTTL)
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		hctx, cancel := context.WithTimeout(context.Background(), *healthTimeout)
-		defer cancel()
-		if err := rt.HealthCheck(hctx, *healthTimeout); err != nil {
-			http.Error(w, "unhealthy", http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) {
-		hctx, cancel := context.WithTimeout(context.Background(), *healthTimeout)
-		defer cancel()
-		if err := rt.HealthCheck(hctx, *healthTimeout); err != nil {
-			http.Error(w, "not-ready", http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ready"))
-	})
+	api := newHTTPAPI(rt, *healthTimeout, *writeTimeout, *idempotencyTTL)
+	mux.HandleFunc("/livez", api.handleLiveness)
+	mux.HandleFunc("/healthz", api.handleHealthz)
+	mux.HandleFunc("/readyz", api.handleReadyz)
+	mux.HandleFunc("/v1/decisions", api.handleDecisionWrite)
+	mux.HandleFunc("/v1/telemetry/events", api.handleTelemetryWrite)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("asymm-db-vedicq-runtime"))
@@ -181,4 +172,33 @@ func getEnvOrDefaultInt(name string, fallback int) int {
 func fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	os.Exit(1)
+}
+
+func logServeStartup(
+	dbCfg dbpkg.Config,
+	host string,
+	port int,
+	healthTimeout time.Duration,
+	writeTimeout time.Duration,
+	idempotencyTTL time.Duration,
+) {
+	dbHost := "(unknown)"
+	u, err := url.Parse(dbCfg.DatabaseURL)
+	if err == nil && u != nil && u.Hostname() != "" {
+		dbHost = u.Hostname()
+	}
+	fmt.Fprintf(
+		os.Stdout,
+		"platform_runtime: startup mode=serve host=%s port=%d db_driver=%s db_host=%s max_open=%d max_idle=%d stmt_timeout_ms=%d health_timeout=%s write_timeout=%s idempotency_ttl=%s\n",
+		host,
+		port,
+		dbCfg.DriverName,
+		dbHost,
+		dbCfg.MaxOpenConns,
+		dbCfg.MaxIdleConns,
+		dbCfg.StatementTimeoutMS,
+		healthTimeout.String(),
+		writeTimeout.String(),
+		idempotencyTTL.String(),
+	)
 }

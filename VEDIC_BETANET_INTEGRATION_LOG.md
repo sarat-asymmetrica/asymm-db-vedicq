@@ -277,3 +277,19 @@ Phase 1 closeout outcomes:
 
 Runtime deployment sprint elapsed:
 - `00:01:39`
+
+## Runtime Bundle Sprint (R1-R5)
+
+- 09:06:56 +05:30: Sprint started (execute R1-R5 bundle for `asymm-db-vedicq-runtime`).
+- 09:08:01 +05:30: Added runtime API v1 handlers with request-id and idempotency enforcement (`/v1/decisions`, `/v1/telemetry/events`).
+- 09:08:34 +05:30: Added `/livez` endpoint and structured startup logs with non-secret DB/runtime settings.
+- 09:09:11 +05:30: Added DB statement timeout default support (`DB_STATEMENT_TIMEOUT_MS`) in config path.
+- 09:09:43 +05:30: Added least-privilege role bootstrap at `db/bootstrap/runtime_roles.sql`.
+- 09:10:19 +05:30: Added live cutover evidence script `scripts/run_live_cutover_matrix.ps1`.
+- 09:10:46 +05:30: Added runtime cutover checklist at `docs_bundle/RUNTIME_CUTOVER_CHECKLIST.md`.
+- 09:11:25 +05:30: Sprint ended.
+- 09:13:02 +05:30: Executed `go test ./... -v` (pass; integration env-gated skip without live URL).
+- 09:14:31 +05:30: Executed `docker build -t asymm-db-vedicq-runtime:local .` (pass).
+
+Runtime bundle sprint elapsed:
+- `00:04:29`

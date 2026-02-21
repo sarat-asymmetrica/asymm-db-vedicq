@@ -5,6 +5,7 @@ This folder contains canonical PostgreSQL migrations for the Vedic x Betanet int
 ## Layout
 
 - `migrations/` ordered SQL migrations.
+- `bootstrap/` operator-managed SQL (for example runtime role provisioning).
 
 ## Conventions
 
@@ -18,6 +19,14 @@ This folder contains canonical PostgreSQL migrations for the Vedic x Betanet int
 ```bash
 psql "$DATABASE_URL" -f db/migrations/0001_control_plane_canonical.sql
 psql "$DATABASE_URL" -f db/migrations/0002_policy_seed_baselines.sql
+```
+
+## Bootstrap (operator-managed)
+
+For least-privilege runtime roles, use:
+
+```bash
+psql "$DATABASE_URL" -f db/bootstrap/runtime_roles.sql
 ```
 
 ## Canonical Sources of Truth
