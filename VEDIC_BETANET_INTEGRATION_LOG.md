@@ -293,3 +293,18 @@ Runtime deployment sprint elapsed:
 
 Runtime bundle sprint elapsed:
 - `00:04:29`
+
+## Runtime Hardening Sprint (Pre-Public)
+
+- 09:26:19 +05:30: Sprint started (public-exposure hardening pass).
+- 09:27:08 +05:30: Added runtime security config loader (`RUNTIME_REQUIRE_AUTH`, token list, CORS allowlist, rate-limit settings).
+- 09:27:41 +05:30: Added middleware for security headers and strict origin allowlist handling.
+- 09:28:02 +05:30: Added mutating endpoint auth checks (`Authorization`/`X-API-Key`) and per-client rate limiting.
+- 09:28:21 +05:30: Added hardening tests in `cmd/platform_runtime/serve_security_test.go`.
+- 09:28:47 +05:30: Executed `go test ./cmd/platform_runtime ./pkg/db -v` (pass).
+- 09:28:59 +05:30: Executed `go test ./...` (pass).
+- 09:30:12 +05:30: Executed `docker build -t asymm-db-vedicq-runtime:local .` (pass).
+- 09:30:12 +05:30: Sprint ended.
+
+Runtime hardening sprint elapsed:
+- `00:03:53`

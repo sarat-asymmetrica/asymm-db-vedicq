@@ -20,14 +20,22 @@ type httpAPI struct {
 	healthTimeout  time.Duration
 	writeTimeout   time.Duration
 	idempotencyTTL time.Duration
+	securityCfg    serveSecurityConfig
+	rateLimiter    *requestRateLimiter
 }
 
-func newHTTPAPI(rt *platform.Runtime, healthTimeout, writeTimeout, idempotencyTTL time.Duration) *httpAPI {
+func newHTTPAPI(
+	rt *platform.Runtime,
+	healthTimeout, writeTimeout, idempotencyTTL time.Duration,
+	securityCfg serveSecurityConfig,
+) *httpAPI {
 	return &httpAPI{
 		rt:             rt,
 		healthTimeout:  healthTimeout,
 		writeTimeout:   writeTimeout,
 		idempotencyTTL: idempotencyTTL,
+		securityCfg:    securityCfg,
+		rateLimiter:    newRequestRateLimiter(securityCfg.RateLimitPerMinute),
 	}
 }
 
@@ -70,6 +78,14 @@ func (a *httpAPI) handleReadyz(w http.ResponseWriter, r *http.Request) {
 func (a *httpAPI) handleDecisionWrite(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if err := a.authorizeAndRateLimit(r, "v1/decisions"); err != nil {
+		status := http.StatusUnauthorized
+		if err.Error() == "rate limit exceeded" {
+			status = http.StatusTooManyRequests
+		}
+		writeJSONError(w, status, err.Error())
 		return
 	}
 	requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
@@ -188,6 +204,14 @@ func (a *httpAPI) handleTelemetryWrite(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+	if err := a.authorizeAndRateLimit(r, "v1/telemetry/events"); err != nil {
+		status := http.StatusUnauthorized
+		if err.Error() == "rate limit exceeded" {
+			status = http.StatusTooManyRequests
+		}
+		writeJSONError(w, status, err.Error())
+		return
+	}
 	requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
 	if requestID == "" {
 		writeJSONError(w, http.StatusBadRequest, "X-Request-ID header is required")
@@ -271,6 +295,40 @@ func (a *httpAPI) handleTelemetryWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeRawJSON(w, http.StatusAccepted, respBody)
+}
+
+func (a *httpAPI) authorizeAndRateLimit(r *http.Request, scope string) error {
+	if a.securityCfg.RequireAuth {
+		token := extractAuthToken(r)
+		if token == "" {
+			return fmt.Errorf("missing bearer token or x-api-key")
+		}
+		if _, ok := a.securityCfg.AllowedTokens[token]; !ok {
+			return fmt.Errorf("invalid api token")
+		}
+	}
+
+	clientIP := extractClientIP(r, a.securityCfg.TrustProxyHeaders)
+	key := clientIP + ":" + scope
+	if !a.rateLimiter.allow(key, a.securityCfg.RateLimitBurst) {
+		return fmt.Errorf("rate limit exceeded")
+	}
+	return nil
+}
+
+func extractAuthToken(r *http.Request) string {
+	if v := strings.TrimSpace(r.Header.Get("X-API-Key")); v != "" {
+		return v
+	}
+	authz := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authz == "" {
+		return ""
+	}
+	const prefix = "Bearer "
+	if strings.HasPrefix(authz, prefix) {
+		return strings.TrimSpace(strings.TrimPrefix(authz, prefix))
+	}
+	return ""
 }
 
 type decisionWriteRequest struct {

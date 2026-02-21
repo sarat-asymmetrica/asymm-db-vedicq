@@ -93,6 +93,10 @@ func serveCmd(args []string) {
 		NonceScope:  *nonceScope,
 		NonceWindow: *nonceWindow,
 	}
+	serveSecCfg, err := loadServeSecurityConfigFromEnv()
+	if err != nil {
+		fatalf("load runtime security config: %v", err)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -107,10 +111,10 @@ func serveCmd(args []string) {
 		fatalf("startup health check: %v", err)
 	}
 
-	logServeStartup(dbCfg, *host, *port, *healthTimeout, *writeTimeout, *idempotencyTTL)
+	logServeStartup(dbCfg, serveSecCfg, *host, *port, *healthTimeout, *writeTimeout, *idempotencyTTL)
 
 	mux := http.NewServeMux()
-	api := newHTTPAPI(rt, *healthTimeout, *writeTimeout, *idempotencyTTL)
+	api := newHTTPAPI(rt, *healthTimeout, *writeTimeout, *idempotencyTTL, serveSecCfg)
 	mux.HandleFunc("/livez", api.handleLiveness)
 	mux.HandleFunc("/healthz", api.handleHealthz)
 	mux.HandleFunc("/readyz", api.handleReadyz)
@@ -124,7 +128,7 @@ func serveCmd(args []string) {
 	addr := net.JoinHostPort(*host, strconv.Itoa(*port))
 	server := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           withServeMiddlewares(mux, serveSecCfg),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -176,6 +180,7 @@ func fatalf(format string, args ...interface{}) {
 
 func logServeStartup(
 	dbCfg dbpkg.Config,
+	serveSecCfg serveSecurityConfig,
 	host string,
 	port int,
 	healthTimeout time.Duration,
@@ -197,8 +202,19 @@ func logServeStartup(
 		dbCfg.MaxOpenConns,
 		dbCfg.MaxIdleConns,
 		dbCfg.StatementTimeoutMS,
+		// Security posture is safe to log as booleans/counts only.
 		healthTimeout.String(),
 		writeTimeout.String(),
 		idempotencyTTL.String(),
+	)
+	fmt.Fprintf(
+		os.Stdout,
+		"platform_runtime: security require_auth=%t token_count=%d allowed_origins=%d rate_limit_per_min=%d rate_limit_burst=%d trust_proxy_headers=%t\n",
+		serveSecCfg.RequireAuth,
+		len(serveSecCfg.AllowedTokens),
+		len(serveSecCfg.AllowedOrigins),
+		serveSecCfg.RateLimitPerMinute,
+		serveSecCfg.RateLimitBurst,
+		serveSecCfg.TrustProxyHeaders,
 	)
 }

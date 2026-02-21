@@ -34,8 +34,8 @@ Runtime API endpoints:
 - `GET /livez`
 - `GET /healthz`
 - `GET /readyz`
-- `POST /v1/decisions` (requires `X-Request-ID`, `Idempotency-Key`)
-- `POST /v1/telemetry/events` (requires `X-Request-ID`, `Idempotency-Key`)
+- `POST /v1/decisions` (requires `Authorization: Bearer <token>` or `X-API-Key`, plus `X-Request-ID`, `Idempotency-Key`)
+- `POST /v1/telemetry/events` (requires `Authorization: Bearer <token>` or `X-API-Key`, plus `X-Request-ID`, `Idempotency-Key`)
 
 ## Docker
 
@@ -76,6 +76,14 @@ Supported DB tuning env vars:
 - `DB_MAX_IDLE_CONNS` (default `5`)
 - `DB_CONNECT_TIMEOUT_SECONDS` (default `5`)
 - `DB_STATEMENT_TIMEOUT_MS` (default `15000`)
+
+Runtime security env vars:
+- `RUNTIME_REQUIRE_AUTH` (default `true`)
+- `RUNTIME_API_TOKENS` (comma-separated; required when auth is enabled)
+- `RUNTIME_ALLOWED_ORIGINS` (comma-separated CORS allowlist)
+- `RUNTIME_RATE_LIMIT_PER_MINUTE` (default `120`)
+- `RUNTIME_RATE_LIMIT_BURST` (default `30`)
+- `RUNTIME_TRUST_PROXY_HEADERS` (default `true`)
 
 Least-privilege role bootstrap:
 - `db/bootstrap/runtime_roles.sql`

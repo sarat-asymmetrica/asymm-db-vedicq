@@ -277,11 +277,17 @@ Next milestones:
 3. Milestone R3: Operator jobs split.
    - Completed: runbooks now define one-shot jobs vs long-running service command boundaries.
 4. Milestone R4: Postgres production posture.
-   - In progress: statement timeout defaults and pool env surfaced.
+   - Completed: statement timeout defaults and pool env surfaced.
    - Completed: least-privilege role bootstrap script in `db/bootstrap/runtime_roles.sql`.
 5. Milestone R5: Cutover readiness.
    - In progress: live matrix automation script + cutover checklist added.
    - Pending: execute live matrix in hosted environment and attach evidence logs.
+
+Hardening before public exposure:
+- Completed: API auth on mutating endpoints (`Authorization: Bearer` or `X-API-Key`).
+- Completed: CORS allowlist middleware (`RUNTIME_ALLOWED_ORIGINS`).
+- Completed: request rate limiting per client IP and endpoint scope.
+- Completed: default security headers on all responses.
 
 ## 11. Definition of Done
 

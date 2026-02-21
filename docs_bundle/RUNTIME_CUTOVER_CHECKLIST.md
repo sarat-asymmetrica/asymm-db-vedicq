@@ -25,6 +25,8 @@ This checklist gates production cutover for `asymm-db-vedicq-runtime`.
 3. `X-Request-ID` required on all mutating endpoints.
 4. `Idempotency-Key` required on all mutating endpoints.
 5. Duplicate idempotent requests with matching payload return cached response.
+6. Mutating endpoints require `Authorization: Bearer <token>` or `X-API-Key`.
+7. `RUNTIME_API_TOKENS` is set and rotated via platform secrets.
 
 ## R3 Jobs vs Service
 
@@ -43,6 +45,8 @@ This checklist gates production cutover for `asymm-db-vedicq-runtime`.
    - `DB_STATEMENT_TIMEOUT_MS`
 2. Least-privilege roles provisioned from `db/bootstrap/runtime_roles.sql`.
 3. Runtime credentials use writer role; analytics/reporting uses reader role.
+4. CORS allowlist configured via `RUNTIME_ALLOWED_ORIGINS` (no wildcard).
+5. Runtime rate limit configured (`RUNTIME_RATE_LIMIT_PER_MINUTE`, `RUNTIME_RATE_LIMIT_BURST`).
 
 ## R5 Cutover Evidence
 
