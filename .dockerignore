@@ -1,0 +1,13 @@
+.git
+.github
+**/.DS_Store
+**/Thumbs.db
+**/*.exe
+**/bin
+**/dist
+**/tmp
+**/.env
+**/.env.*
+docs
+documentation
+README_SOURCE.md

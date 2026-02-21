@@ -1,0 +1,16 @@
+# Build artifacts
+bin/
+dist/
+*.exe
+
+# Env and local config
+.env
+.env.*
+
+# Editor/system noise
+.DS_Store
+Thumbs.db
+
+# Accidental files from copy session
+docs
+documentation
