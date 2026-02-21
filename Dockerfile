@@ -26,7 +26,7 @@ COPY scripts ./scripts
 
 USER appuser
 
-# Default command is a runtime selfcheck.
+# Default command runs long-lived runtime service.
 # For migrations in Sliplane, override command to:
 #   dbctl migrate up --dir /app/db/migrations
-CMD ["platform_runtime", "selfcheck"]
+CMD ["platform_runtime", "serve"]

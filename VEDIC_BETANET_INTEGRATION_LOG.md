@@ -264,3 +264,16 @@ Next sprint target (Phase 1 closeout):
 Phase 1 closeout outcomes:
 1. Minimal service-level wiring examples: done via `pkg/platform/runtime.go` and `cmd/platform_runtime/main.go`.
 2. Integration matrix execution against live Postgres: pending environment provisioning (`INTEGRATION_DATABASE_URL`).
+
+## Runtime Deployment Sprint (Post-Phase-1)
+
+- 08:59:05 +05:30: Sprint started (convert one-shot runtime into long-lived service mode for Sliplane).
+- 08:59:44 +05:30: Added `serve` command to `cmd/platform_runtime/main.go` with HTTP endpoints (`/healthz`, `/readyz`) and graceful shutdown handling.
+- 08:59:58 +05:30: Updated Docker default command to `platform_runtime serve`.
+- 09:00:11 +05:30: Updated runtime/deployment flow notes in `README.md` for job-vs-service split.
+- 09:00:32 +05:30: Executed `go test ./... -v` (pass; integration suite env-gated skip without `INTEGRATION_DATABASE_URL`).
+- 09:00:41 +05:30: Executed `docker build -t asymm-db-vedicq-runtime:local .` (pass).
+- 09:00:44 +05:30: Sprint ended.
+
+Runtime deployment sprint elapsed:
+- `00:01:39`

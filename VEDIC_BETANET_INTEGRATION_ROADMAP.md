@@ -259,6 +259,29 @@ Recommended execution cadence:
 5. Add backfill + reconciliation scripts and an operator cutover checklist.
 6. Add race/perf/integration tests and restore-drill scripts before production cutover.
 
+## 11. `asymm-db-vedicq-runtime` Creation Path (Current Next Steps)
+
+Status:
+- `platform_runtime selfcheck` is successful as a one-shot command.
+- `platform_runtime serve` is now the long-running default container command.
+
+Next milestones:
+1. Milestone R1: Service baseline stabilization.
+   - Add `/livez`, `/readyz`, and structured startup logs with config echo (non-secret).
+   - Add health probe settings to deployment docs (initial delay, timeout, period).
+2. Milestone R2: Runtime API v1 scaffold.
+   - Add HTTP endpoints for decision write path and telemetry ingest write path.
+   - Enforce request IDs and idempotency keys for mutating calls.
+3. Milestone R3: Operator jobs split.
+   - Keep `dbctl migrate up` and `platform_runtime selfcheck` as one-shot job commands.
+   - Keep `platform_runtime serve` as service command only.
+4. Milestone R4: Postgres production posture.
+   - Add least-privilege DB roles (`migrator`, `runtime_writer`, `runtime_reader`).
+   - Add connection pool limits and statement timeout defaults.
+5. Milestone R5: Cutover readiness.
+   - Run integration matrix against live Postgres.
+   - Capture rollback drill and data parity evidence before broader traffic.
+
 ## 11. Definition of Done
 
 The integration is complete when:

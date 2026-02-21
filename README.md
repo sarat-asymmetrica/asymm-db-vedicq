@@ -25,6 +25,10 @@ go test ./pkg/... ./integration -v
 ```bash
 go run ./cmd/platform_runtime selfcheck
 ```
+4. Run runtime service:
+```bash
+go run ./cmd/platform_runtime serve --host 0.0.0.0 --port 8080
+```
 
 ## Docker
 
@@ -35,7 +39,7 @@ docker build -t vedic-platform-experiments:local .
 
 Default container command:
 ```bash
-platform_runtime selfcheck
+platform_runtime serve
 ```
 
 Run migrations via command override:
@@ -48,8 +52,9 @@ docker run --rm -e DATABASE_URL="$DATABASE_URL" vedic-platform-experiments:local
 
 1. Deploy PostgreSQL as a private service first.
 2. Deploy this app service with `DATABASE_URL` using internal hostname.
-3. First run migration command override.
-4. Then run/restore default app command for runtime selfcheck or your service command.
+3. First run migration command override (`dbctl migrate up --dir /app/db/migrations`).
+4. Optionally run one-shot selfcheck command override (`platform_runtime selfcheck`).
+5. Keep default service command as long-running runtime (`platform_runtime serve`).
 
 ## Next Step
 
