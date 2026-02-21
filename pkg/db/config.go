@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -73,6 +74,13 @@ func (c Config) Validate() error {
 	}
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("db: database url is required")
+	}
+	u, err := url.Parse(c.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("db: database url is invalid: %w", err)
+	}
+	if strings.TrimSpace(u.Hostname()) == "" {
+		return fmt.Errorf("db: database url host is required")
 	}
 	if c.ConnectTimeout <= 0 {
 		return fmt.Errorf("db: connect timeout must be > 0")

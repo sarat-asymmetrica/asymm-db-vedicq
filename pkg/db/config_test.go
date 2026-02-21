@@ -62,6 +62,21 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestConfigValidateRequiresHost(t *testing.T) {
+	cfg := Config{
+		DriverName:      "pgx",
+		DatabaseURL:     "postgres://user:pass@:5432/dbname",
+		ConnectTimeout:  1,
+		MaxIdleConns:    0,
+		MaxOpenConns:    1,
+		ConnMaxIdleTime: 1,
+		ConnMaxLifetime: 1,
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatalf("expected error for missing host in DATABASE_URL")
+	}
+}
+
 func TestMain(m *testing.M) {
 	code := m.Run()
 	os.Exit(code)
